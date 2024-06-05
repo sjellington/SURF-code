@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>EVA: The Expected Value Algorithm</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="mystyle.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</head>
+
+<body>
+
+    <div id="header">
+        <h1>
+            EVA: The Expected Value Algorithm
+        </h1>
+    </div>
+
+    <div id="sidebar">
+        <div style="height:100px"></div>
+        <a href="index.html">Welcome!</a>
+        <a href="eva1pt0.html">EVA 1.0</a>
+        <a href="eva2pt0.html">EVA 2.0</a>
+        <a href="eva3pt0.html">EVA 3.0</a>
+        <a href="eva4pt0.html">EVA 4.0</a>
+    </div>
+
+    <div id="main">
+        <p id="instructions">
+            EVA 2.0 calculates the probabilistic advantage held by the buyer with regard to a lottery game. Answer a few questions about your ticket below.
+        </p>
+
+        <div id="algorithm">
+            <div id="promptContainer">
+                <div id="prompt">
+                    In this particular lottery, how many numbers are selected?
+                </div>
+
+                <div id="inputBoxContainer">
+                    <input type="text" id="inputBox" autofocus>
+                    <button onClick="submitInputFunction()" id="submitInput">Submit</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align:center">
+            <button id="reload" onClick="refreshPage()">Reset</button>
+        </div>
+    </div>
+
+    <div style="height:100px"></div>
+
+    <script type="text/javascript">
+        const prompts = [
+            "In this particular lottery, how many numbers are selected?",
+            "From what range are the numbers selected?",
+            "What is the price of the ticket?",
+            "You have finished answering preliminary questions about your ticket. Answer a few questions about the prizes below."
+        ];
+        let promptIndex = 0;
+        let info = [];
+
+        document.getElementById("inputBox").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                submitInputFunction();
+            }
+        });
+
+        function submitInputFunction() {
+            const inputBox = document.getElementById("inputBox");
+            const prompt = document.getElementById("prompt");
+
+            var input = inputBox.value.trim();
+            info.push(parseInt(input));
+
+            inputBox.value = '';
+
+            promptIndex++;
+            if (promptIndex < prompts.length) {
+                prompt.innerText = prompts[promptIndex];
+            }
+
+            if (info.length === 3) {
+                openPrizes();
+            }
+        }
+
+        let prizes = [];
+        let prizeIndex = 0;
+
+        function openPrizes() {
+            const inputBoxContainer = document.getElementById("inputBoxContainer");
+            inputBoxContainer.parentNode.removeChild(inputBoxContainer);
+
+            const num = info[0];
+            const algorithm = document.getElementById("algorithm");
+            const prizesContainer = document.createElement("div");
+            prizesContainer.style.borderStyle = "solid";
+            prizesContainer.style.borderRadius = "15px";
+            prizesContainer.style.padding = "10px";
+            prizesContainer.style.marginTop = "15px";
+            const prizesPrompt = document.createElement("div");
+            prizesPrompt.innerText = `What is the prize for matching 0 of ${num} numbers?`;
+            const inputPrizesContainer = document.createElement("div");
+            inputPrizesContainer.style.textAlign = "center";
+            inputPrizesContainer.style.paddingTop = "25px";
+            inputPrizesContainer.style.paddingBottom = "10px";
+            const inputPrizes = document.createElement("input");
+            inputPrizes.setAttribute("autofocus", "");
+            const submitPrizes = document.createElement("button");
+            submitPrizes.innerText = "Submit";
+            submitPrizes.onclick = submitPrizesFunction;
+
+            algorithm.appendChild(prizesContainer);
+            prizesContainer.appendChild(prizesPrompt);
+            prizesContainer.appendChild(inputPrizesContainer);
+            inputPrizesContainer.appendChild(inputPrizes);
+            inputPrizes.focus();
+            inputPrizesContainer.appendChild(submitPrizes);
+
+            inputPrizes.addEventListener("keydown", function(event) {
+                if (event.key === "Enter") {
+                    submitPrizesFunction();
+                }
+            });
+
+            function submitPrizesFunction() {
+                prizes.push(parseInt(inputPrizes.value.trim()));
+                prizeIndex++;
+
+                if (prizeIndex <= num) {
+                    prizesPrompt.innerText = `What is the prize for matching ${prizeIndex} of ${num} numbers?`;
+                    inputPrizes.value = '';
+                } else {
+                    prizesPrompt.innerText = "All prizes have been entered! See result below.";
+                    inputPrizesContainer.parentNode.removeChild(inputPrizesContainer);
+                    calculate();
+                }
+            }
+        }
+
+        const resultContainer = document.createElement("div");
+        resultContainer.style.borderStyle = "solid";
+        resultContainer.style.borderRadius = "15px";
+        resultContainer.style.padding = "10px";
+        resultContainer.style.marginTop = "15px";
+
+        function calculate() {
+            function fact(n) {
+                let result = 1;
+                for (let i = 2; i <= n; i++) {
+                    result *= i;
+                }
+                return result;
+            }
+
+            function nCr(n, r) {
+                return fact(n) / (fact(r) * fact(n - r));
+            }
+
+            const num = info[0];
+            const field = info[1];
+            const ticketPrice = info[2];
+
+            let possibles = [];
+            for (let index = 0; index <= num; index++) {
+                let value = (nCr(num, index) * nCr(field - num, num - index)) / nCr(field, num);
+                possibles.push(value);
+            }
+
+            let expect = 0;
+            for (let index = 0; index <= num; index++) {
+                expect += possibles[index] * prizes[index];
+            }
+
+            let expectedReturn = ((expect - ticketPrice) / ticketPrice) * 100;
+
+            const algorithm = document.getElementById("algorithm");
+
+            if (expectedReturn > 0) {
+                resultContainer.innerHTML = resultContainer.innerHTML = `Expected Return: ${expectedReturn.toFixed(2)}% <br>It is probabilistically advantageous to purchase a ticket.`;
+            } else {
+                resultContainer.innerHTML = resultContainer.innerHTML = `Expected Return: ${expectedReturn.toFixed(2)}% <br>It is probabilistically disadvantageous to purchase a ticket.`;
+            }
+
+            algorithm.appendChild(resultContainer);
+        }
+
+        function refreshPage() {
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>
