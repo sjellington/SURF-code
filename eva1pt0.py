@@ -1,4 +1,4 @@
-"""Returns fair price of a share of stock."""
+"""Returns user's fair price of a share of stock."""
 
 def enter() -> None:
     print("")
